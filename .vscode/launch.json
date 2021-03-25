@@ -1,0 +1,10 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "app_reproduce",
+            "request": "launch",
+            "type": "dart"
+        }
+    ]
+}
