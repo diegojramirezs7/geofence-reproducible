@@ -160,9 +160,9 @@ class _GeofenceDropdownState extends State<GeofenceDropdown> {
     if (status != PermissionStatus.granted) {
       var _serviceEnabled = await location.requestPermission();
       if (_serviceEnabled == PermissionStatus.granted) {
-        //removeGeofenceById();
-        final result = await GeofencingClient.sendFileData();
-        print(result);
+        removeGeofenceById();
+        // final result = await GeofencingClient.sendFileData();
+        // print(result);
       } else {
         await PlatformAlertDialog(
           title: "Background Location Information",
@@ -171,9 +171,9 @@ class _GeofenceDropdownState extends State<GeofenceDropdown> {
         ).show(context);
       }
     } else {
-      //removeGeofenceById();
-      final result = await GeofencingClient.sendFileData();
-      print(result);
+      removeGeofenceById();
+      // final result = await GeofencingClient.sendFileData();
+      // print(result);
     }
   }
 
