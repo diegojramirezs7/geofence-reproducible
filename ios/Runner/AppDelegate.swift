@@ -54,18 +54,7 @@ import SystemConfiguration
             }
 
         result("false");
-      } else if (call.method == "testHTTP"){
-        let value = testHttp()
-        result(value)
-      } else if (call.method == "removeAllGeofences") {
-        let value = removeAllGeofences()
-        result(value)
-      }
-      else if (call.method == "getAllGeofences") {
-        let value = getAllGeofences()
-        result(value)
-      }
-      else if (call.method == "removeGeofenceById") {
+      } else if (call.method == "removeGeofenceById") {
         if let args = call.arguments as? Dictionary<String, Any>,
            let identifier = args["identifier"] as? String {
             
@@ -73,31 +62,115 @@ import SystemConfiguration
             result(value)
         }
         result("Identifier argument is needed")
-      } else if (call.method == "randomTest") {
+      } else if (call.method == "getAllGeofences") {
+        let value = getAllGeofences()
+        result(value)
+      } else if (call.method == "removeAllGeofences") {
+        let value = removeAllGeofences()
+        result(value)
+      } else if (call.method == "sendFileData") {
+        let val = sendFileData() ?? ""
+        result(val)
+      }
+      
+      /*
+       methods only used for testing, not meant to be used in production
+       **/
+      else if (call.method == "test") {
+        let regions = self.locationManager?.monitoredRegions
+        var region: CLRegion?
+
+        for reg in regions! {
+            if reg.identifier == "1" {
+                region = reg
+            }
+        }
+       self.locationManager(self.locationManager!, didEnterRegion: region!)
+       result("true")
+     } else if (call.method == "testHTTP"){
+        let value = testHttp()
+        result(value)
+     } else if (call.method == "randomTest") {
         print("made it here")
         let fileString = self.readDataFromFile()
         print(fileString)
         result(fileString)
-       }else if (call.method == "test") {
-          let regions = self.locationManager?.monitoredRegions
-          var region: CLRegion?
-
-          for reg in regions! {
-              if reg.identifier == "1" {
-                  region = reg
-              }
-          }
-
-         self.locationManager(self.locationManager!, didEnterRegion: region!)
-         result("true")
-        
-       } else if (call.method == "sendFileData") {
-        let val = sendFileData() ?? ""
-        result(val)
-       }
+     }
     })
     
+    /*
+     starts monitoring region using params
+     **/
+    func startGeofencing(latitude: Double, longitude: Double,
+                         identifier: String, radius: Double) -> Bool {
+        
+        if CLLocationManager.isMonitoringAvailable(for: CLCircularRegion.self) {
+               
+          let coordinates = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+          let circularRegion = CLCircularRegion(center: coordinates, radius: radius, identifier: identifier)
+          circularRegion.notifyOnExit = true
+          circularRegion.notifyOnEntry = true
+                
+          self.locationManager?.startMonitoring(for: circularRegion)
+          return true
+        }
+        return false
+    }
+    
+    
+    /*
+     stops monitoring region whose idenfier matches idenfier param
+     **/
+    func removeGeofenceById(identifier: String) -> String {
+      
+      let regions = self.locationManager?.monitoredRegions
+
+      for region in regions! {
+        if region.identifier == identifier {
+            self.locationManager?.stopMonitoring(for: region)
+            return "true"
+        }
+      }
+
+      return "Region not found"
+    }
+    
+    /*
+     returns list of idenfiers of all geofences in format
+     ```
+     [id1 id2 id3 id4 id5 ...]
+     ```
+     **/
+    func getAllGeofences() -> String {
+      let regions = self.locationManager?.monitoredRegions
+      var result = ""
+
+      for region in regions! {
+        result += "\(region.identifier) "
+      }
+
+      return result
+    }
+
+    /*
+     Stops monitoring all geofences
+     **/
+    func removeAllGeofences() -> String {
+        let regions = self.locationManager?.monitoredRegions
+
+        for region in regions! {
+            self.locationManager?.stopMonitoring(for: region)
+        }
+        
+        return "got here baby"
+    }
+    
+    /*
+     Sends all the event logs stored in event_log file to the server
+     */
     func sendFileData() -> String? {
+        // if file doesn't exist, this method returns [] by default
+        // otherwise returns string contents of file
         let fileDataString = readDataFromFile()
         
         if fileDataString != "[]" {
@@ -105,6 +178,7 @@ import SystemConfiguration
             let eventLogs: [GEvent] = try! JSONDecoder().decode([GEvent].self, from: jsonData)
             let endpoint = "https://safe-falls-49683.herokuapp.com/events/"
             
+            // send post request with event log for every one on the list gotten from the file
             for el in eventLogs {
                 //print(el.time)
                 AF.request(endpoint, method: .post, parameters: el, encoder:  JSONParameterEncoder.default).responseJSON {response in
@@ -113,11 +187,16 @@ import SystemConfiguration
                 }
             }
         }
+        
+        // overwrite previous content with empty list, data has been already sent to the server
         saveDataToFile(myString: "[]")
         return "file data sent"
     }
     
-
+    /*
+     Debuggin method, not using in production.
+     Only meant to test if post requests can be sent successfully to the server
+     */
     func testHttp() -> String{
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
@@ -147,64 +226,16 @@ import SystemConfiguration
         return result
     }
     
-    func startGeofencing(latitude: Double, longitude: Double,
-                         identifier: String, radius: Double) -> Bool {
-        
-        if CLLocationManager.isMonitoringAvailable(for: CLCircularRegion.self) {
-               
-          let coordinates = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
-          let circularRegion = CLCircularRegion(center: coordinates, radius: radius, identifier: identifier)
-          circularRegion.notifyOnExit = true
-          circularRegion.notifyOnEntry = true
-                
-          self.locationManager?.startMonitoring(for: circularRegion)
-          // print("started")
-          return true               
-        }
-        return false
-    }
-
-    func getAllGeofences() -> String {
-      let regions = self.locationManager?.monitoredRegions
-      var result = ""
-
-      for region in regions! {
-        result += "\(region.identifier) "
-      }
-
-      return result
-    }
-
-    func removeGeofenceById(identifier: String) -> String {
-      
-      let regions = self.locationManager?.monitoredRegions
-
-      for region in regions! {
-        if region.identifier == identifier {
-            self.locationManager?.stopMonitoring(for: region)
-            return "true"
-        }
-      }
-
-      return "Region not found"
-    }
-
-    func removeAllGeofences() -> String {
-        let regions = self.locationManager?.monitoredRegions
-
-        for region in regions! {
-            self.locationManager?.stopMonitoring(for: region)
-        }
-        
-        return "got here baby"
-    }
-    
     GeneratedPluginRegistrant.register(with: self)
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 }
 
 class Reachability {
+    
+    /*
+     Determines if phone has network connection
+     **/
     class func isConnectedToNetwork() -> Bool {
         var zeroAddress = sockaddr_in(sin_len: 0, sin_family: 0, sin_port: 0, sin_addr: in_addr(s_addr: 0), sin_zero: (0, 0, 0, 0, 0, 0, 0, 0))
         zeroAddress.sin_len = UInt8(MemoryLayout.size(ofValue: zeroAddress))
@@ -224,7 +255,6 @@ class Reachability {
         /* Only Working for WIFI
         let isReachable = flags == .reachable
         let needsConnection = flags == .connectionRequired
-
         return isReachable && !needsConnection
         */
 
@@ -246,6 +276,10 @@ extension AppDelegate: CLLocationManagerDelegate {
       let user_name: String
     }
     
+    
+    /*
+     Saves preformed string to log_file, usually string should have json format
+     **/
     func saveDataToFile(myString: String) {
         let directoryURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         
@@ -265,6 +299,11 @@ extension AppDelegate: CLLocationManagerDelegate {
         }
     }
     
+    
+    /*
+     Get content from log file containing list of events triggered by region monitoring
+     returns string representation of json content
+     **/
     func readDataFromFile() -> String {
         let directoryURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         
@@ -275,7 +314,7 @@ extension AppDelegate: CLLocationManagerDelegate {
          let savedData = try Data(contentsOf: fileUrl)
          // Convert the data back into a string
          if let savedString = String(data: savedData, encoding: .utf8) {
-            print(savedString)
+            print("data string in file: \(savedString)")
             return savedString
          }
          print("failed to get savedString")
@@ -287,6 +326,10 @@ extension AppDelegate: CLLocationManagerDelegate {
         return "[]"
     }
     
+    /*
+     file has list of event logs in JSON format
+     adds EventLog json object to the list after encoding it to string
+    */
     func addEventToFile(event_log: GEvent) {
         let fileDataString = readDataFromFile()
         let jsonData = fileDataString.data(using: .utf8)!
@@ -305,54 +348,64 @@ extension AppDelegate: CLLocationManagerDelegate {
         }
     }
     
-    
-  func locationManager(_ manager: CLLocationManager, didEnterRegion region: CLRegion) {
-    let identifier = region.identifier
-    let formatter = DateFormatter()
-    formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
-    let dateString = formatter.string(from: Date())
+    /*
+     Receives event from LocationManager that user entered a region
+     saves event to log file
+     if there's internet connection, it sends a post request to the server right away
+    */
+      func locationManager(_ manager: CLLocationManager, didEnterRegion region: CLRegion) {
+        print("user entered region")
+        let identifier = region.identifier
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        let dateString = formatter.string(from: Date())
 
-    let endpoint: String = "https://safe-falls-49683.herokuapp.com/events/"
+        let endpoint: String = "https://safe-falls-49683.herokuapp.com/events/"
 
-    let defaults = UserDefaults.standard
-    let my_name = defaults.string(forKey: "tradespecifix_user_name") ?? ""
-    let eventLog = GEvent(event: "enter", geofence: identifier, time: dateString, phone_os: "iOS", user_name: my_name)
-    
-    addEventToFile(event_log: eventLog)
-    
-    if Reachability.isConnectedToNetwork() {
-        AF.request(endpoint, method: .post, parameters: eventLog, encoder: JSONParameterEncoder.default).responseJSON {response in
-          guard let json = response.value else { return }
-          print(json)
+        let defaults = UserDefaults.standard
+        let my_name = defaults.string(forKey: "tradespecifix_user_name") ?? ""
+        let eventLog = GEvent(event: "enter", geofence: identifier, time: dateString, phone_os: "iOS", user_name: my_name)
+        
+        addEventToFile(event_log: eventLog)
+        
+        if Reachability.isConnectedToNetwork() {
+            AF.request(endpoint, method: .post, parameters: eventLog, encoder: JSONParameterEncoder.default).responseJSON {response in
+              guard let json = response.value else { return }
+              print(json)
+            }
         }
-    }
-  }
+      }
     
-    // catch notification when user exits the region
-  func locationManager(_ manager: CLLocationManager, didExitRegion region: CLRegion) {
-    let identifier = region.identifier
-            
-    let formatter = DateFormatter()
-    formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
-    let dateString = formatter.string(from: Date())
+    /*
+     Receives event from LocationManager that user exited a region
+     saves event to log file
+     if there's internet connection, it sends a post request to the server right away
+    */
+      func locationManager(_ manager: CLLocationManager, didExitRegion region: CLRegion) {
+        print("user exited region")
+        let identifier = region.identifier
+                
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        let dateString = formatter.string(from: Date())
 
-    let endpoint: String = "https://safe-falls-49683.herokuapp.com/events/"
+        let endpoint: String = "https://safe-falls-49683.herokuapp.com/events/"
 
-    let defaults = UserDefaults.standard
-    let my_name = defaults.string(forKey: "tradespecifix_user_name") ?? ""
-    let eventLog = GEvent(event: "exit", geofence: identifier, time: dateString, phone_os: "iOS", user_name: my_name)
-    addEventToFile(event_log: eventLog)
-    
-    if Reachability.isConnectedToNetwork() {
-        AF.request(endpoint, method: .post, parameters: eventLog, encoder: JSONParameterEncoder.default).responseJSON {response in
-          guard let json = response.value else { return }
-          print(json)
+        let defaults = UserDefaults.standard
+        let my_name = defaults.string(forKey: "tradespecifix_user_name") ?? ""
+        let eventLog = GEvent(event: "exit", geofence: identifier, time: dateString, phone_os: "iOS", user_name: my_name)
+        addEventToFile(event_log: eventLog)
+        
+        if Reachability.isConnectedToNetwork() {
+            AF.request(endpoint, method: .post, parameters: eventLog, encoder: JSONParameterEncoder.default).responseJSON {response in
+              guard let json = response.value else { return }
+              print(json)
+            }
         }
-    } 
-  }
+      }
 
-  func locationManager(_ manager: CLLocationManager, didDetermineState state: CLRegionState, for region: CLRegion) {
-    print(region.identifier)
-    print(state)
-  }
+      func locationManager(_ manager: CLLocationManager, didDetermineState state: CLRegionState, for region: CLRegion) {
+        print(region.identifier)
+        print(state.rawValue)
+      }
 }

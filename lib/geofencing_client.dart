@@ -11,17 +11,6 @@ class GeofencingClient {
     return result;
   }
 
-  static Future<String> randomTest() async {
-    // now gets data from file
-    final String result = await platform.invokeMethod("randomTest");
-    return result;
-  }
-
-  static Future<String> test() async {
-    final String result = await platform.invokeMethod("test");
-    return result;
-  }
-
   static Future<String> registerGeofence(Geofence geofence) async {
     final String result = await platform.invokeMethod('registerGeofence', {
       'name': geofence.id.toString(),
@@ -33,22 +22,6 @@ class GeofencingClient {
     return result;
   }
 
-  static Future<String> testRequest() async {
-    final String result = await platform.invokeMethod("testHTTP");
-
-    return result;
-  }
-
-  static Future<String> getAllGeofences() async {
-    final String result = await platform.invokeMethod("getAllGeofences");
-    return result;
-  }
-
-  static Future<String> removeAllGeofences() async {
-    final String result = await platform.invokeMethod("removeAllGeofences");
-    return result;
-  }
-
   static Future<String> removeGeofenceById(Geofence geofence) async {
     String reqId = geofence.id.toString();
     final String result = await platform
@@ -57,8 +30,38 @@ class GeofencingClient {
     return result;
   }
 
+  static Future<String> removeAllGeofences() async {
+    final String result = await platform.invokeMethod("removeAllGeofences");
+    return result;
+  }
+
+  static Future<String> getAllGeofences() async {
+    final String result = await platform.invokeMethod("getAllGeofences");
+    return result;
+  }
+
   static Future<String> sendFileData() async {
     final String result = await platform.invokeMethod("sendFileData");
+    return result;
+  }
+
+  /**
+   * test methods not meant to be used in production
+   */
+  static Future<String> testRequest() async {
+    final String result = await platform.invokeMethod("testHTTP");
+
+    return result;
+  }
+
+  static Future<String> randomTest() async {
+    // now gets data from file
+    final String result = await platform.invokeMethod("randomTest");
+    return result;
+  }
+
+  static Future<String> test() async {
+    final String result = await platform.invokeMethod("test");
     return result;
   }
 }

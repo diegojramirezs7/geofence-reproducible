@@ -161,8 +161,6 @@ class _GeofenceDropdownState extends State<GeofenceDropdown> {
       var _serviceEnabled = await location.requestPermission();
       if (_serviceEnabled == PermissionStatus.granted) {
         removeGeofenceById();
-        // final result = await GeofencingClient.sendFileData();
-        // print(result);
       } else {
         await PlatformAlertDialog(
           title: "Background Location Information",
@@ -172,8 +170,6 @@ class _GeofenceDropdownState extends State<GeofenceDropdown> {
       }
     } else {
       removeGeofenceById();
-      // final result = await GeofencingClient.sendFileData();
-      // print(result);
     }
   }
 
@@ -279,7 +275,6 @@ class _GeofenceDropdownState extends State<GeofenceDropdown> {
               ),
             ],
           ),
-
           Container(
             color: Color(0xff3E3E3E),
             margin: const EdgeInsets.all(16),
